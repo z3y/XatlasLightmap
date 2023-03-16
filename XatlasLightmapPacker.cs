@@ -22,7 +22,7 @@ namespace z3y
         public GameObject[] rootObjects;
         public bool forceUpdate = false;
         public bool clearStream = true;
-        public bool bruteForce = true;
+        public bool bruteForce = false;
 
         public int lightmapSize = 1024;
         public int padding = 2;
@@ -200,10 +200,19 @@ namespace z3y
 
         private float CalculateArea(Mesh mesh, Transform t)
         {
+            if (mesh.uv == null)
+            {
+                return 0f;
+            }
             var verts = mesh.vertices;
-            var uvs = mesh.uv2;
+            var uvs = mesh.uv2 ?? mesh.uv;
             float area = 0;
             float uvArea = 0;
+
+            if (uvs.Length != mesh.vertices.Length)
+            {
+                return 0f;
+            }
 
             for (int k = 0; k < mesh.subMeshCount; k++)
             {
