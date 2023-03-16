@@ -20,12 +20,16 @@ namespace z3y
     public class XatlasLightmapPacker : MonoBehaviour
     {
         public GameObject[] rootObjects;
-        public bool forceUpdate = false;
-        public bool clearStream = true;
+        public bool autoUpdateUVs = false;
+        public bool clearStream = false;
         public bool bruteForce = false;
+
+        public bool ignoreScaleInLightmap = false;
 
         public int lightmapSize = 1024;
         public int padding = 2;
+
+        public bool regenerate = false;
 
         [SerializeField] public LightmapMeshData[] meshCache;
 
@@ -39,18 +43,17 @@ namespace z3y
             public Vector2[] lightmapUV;
         }
 
-        public static List<GameObject> instances = new List<GameObject>();
-
         public void OnValidate()
         {
-            if (!instances.Contains(gameObject))
-            {
-                instances.Add(gameObject);
-            }
 
-            if (!forceUpdate)
+            if (!autoUpdateUVs)
             {
                 return;
+            }
+
+            if (regenerate)
+            {
+                meshCache = null;
             }
 
             var meshes = new List<Mesh>();
@@ -76,7 +79,7 @@ namespace z3y
                     }
 
                     Vector2[] lightmapUV;
-                    var scale = m_Renderer.scaleInLightmap;
+                    var scale = ignoreScaleInLightmap ? 1f : m_Renderer.scaleInLightmap;
 
 
                     var area = CalculateArea(sm, objects[i].transform);
@@ -157,6 +160,8 @@ namespace z3y
                 m_Renderer.additionalVertexStreams = avs;
                 avs.UploadMeshData(false);
             }
+
+            regenerate = false;
         }
 
         private void GetActiveTransformsWithRenderers(GameObject[] rootObjs, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> obs)
