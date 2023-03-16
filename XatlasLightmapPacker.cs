@@ -4,6 +4,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -19,6 +22,7 @@ namespace z3y
         public GameObject[] rootObjects;
         public bool forceUpdate = false;
         public bool clearStream = true;
+        public bool bruteForce = true;
 
         public int lightmapSize = 1024;
         public int padding = 2;
@@ -75,8 +79,8 @@ namespace z3y
                     Vector2[] lightmapUV;
                     var scale = m_Renderer.scaleInLightmap;
 
-                    var area = CalculateArea(sm);
-                    scale *= Mathf.Sqrt(area);
+                    var area = CalculateArea(sm, objects[i].transform);
+                    scale *= area;
 
                     lightmapUV = new Vector2[sm.uv2.Length];
 
@@ -96,6 +100,8 @@ namespace z3y
                         tangents = sm.tangents
                     };
 
+
+
                     meshes.Add(stream);
 
                 }
@@ -106,7 +112,7 @@ namespace z3y
                 }
 
 
-                z3y.xatlas.PackLightmap(meshes.ToArray(), padding, lightmapSize);
+                z3y.xatlas.PackLightmap(meshes.ToArray(), padding, lightmapSize, bruteForce);
 
                 meshCache = new LightmapMeshData[meshes.Count];
                 for (int k = 0; k < meshCache.Length; k++)
@@ -192,10 +198,12 @@ namespace z3y
             }
         }
 
-        private float CalculateArea(Mesh mesh)
+        private float CalculateArea(Mesh mesh, Transform t)
         {
             var verts = mesh.vertices;
+            var uvs = mesh.uv2;
             float area = 0;
+            float uvArea = 0;
 
             for (int k = 0; k < mesh.subMeshCount; k++)
             {
@@ -209,25 +217,49 @@ namespace z3y
                     var v1 = verts[indexA]; // should be transformed position
                     var v2 = verts[indexB];
                     var v3 = verts[indexC];
+                    v1 = t.TransformPoint(v1);
+                    v2 = t.TransformPoint(v2);
+                    v3 = t.TransformPoint(v3);
+
                     area += Vector3.Cross(v2 - v1, v3 - v1).magnitude;
+
+                    var u1 = uvs[indexA];
+                    var u2 = uvs[indexB];
+                    var u3 = uvs[indexC];
+                    uvArea += Vector3.Cross(u2 - u1, u3 - u1).magnitude;
                 }
             }
+
+            area = Mathf.Sqrt(area) / Mathf.Sqrt(uvArea);
 
             return area;
         }
     }
-
     public class RemoveObjectOnBuild : IProcessSceneWithReport
     {
         public int callbackOrder => 0;
 
         public void OnProcessScene(Scene scene, BuildReport report)
         {
-            var instances = XatlasLightmapPacker.instances;
+            var rootGameObjects = scene.GetRootGameObjects();
 
+            var instances = new List<XatlasLightmapPacker>();
+
+            foreach (var gameObject in rootGameObjects)
+            {
+                var xatlasLightmapPackers = gameObject.GetComponentsInChildren<XatlasLightmapPacker>(false);
+                if (xatlasLightmapPackers is null || xatlasLightmapPackers.Length == 0)
+                {
+                    continue;
+                }
+                instances.AddRange(xatlasLightmapPackers);
+            }
+
+            //Debug.Log(instances.Count);
             for (int i = 0; i < instances.Count; i++)
             {
-                Object.DestroyImmediate(instances[i]);
+                instances[i].OnValidate();
+                Object.DestroyImmediate(instances[i].gameObject);
             }
         }
     }
