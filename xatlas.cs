@@ -267,7 +267,7 @@ namespace z3y
 
             xatlasClear(atlas);
         }
-        public static void PackLightmap(Mesh[] meshes, int padding, int res)
+        public static void PackLightmap(Mesh[] meshes, int padding, int res, bool bruteForce)
         {
 
             newUVBuffer = null;
@@ -302,7 +302,7 @@ namespace z3y
 
                     for (int i = 0; i < m.subMeshCount; i++)
                     {
-                       //err = xatlasAddMeshExt(atlas, m.vertexCount, pointerPos, pointerNorm, pointerUV, (int)m.GetIndexCount(i), m.GetIndices(i));
+                        //err = xatlasAddMeshExt(atlas, m.vertexCount, pointerPos, pointerNorm, pointerUV, (int)m.GetIndexCount(i), m.GetIndices(i));
                         err = xatlasAddUVMesh(atlas, m.vertexCount, pointerUV, (int)m.GetIndexCount(i), m.GetIndices(i), true);
                         if (err == 1)
                         {
@@ -346,7 +346,7 @@ namespace z3y
             //xatlasOnlyPackCharts(atlas);
             //xatlasParametrizeExt(atlas, true);
 
-            xatlasPackExt(atlas, res, 0, padding, true, 0, true);//, true);
+            xatlasPackExt(atlas, res, 0, padding, bruteForce, res, true);//, true);
             xatlasNormalize(atlas, null, true);
 
             Debug.Log("xatlas time: " + (GetTime() - t));
