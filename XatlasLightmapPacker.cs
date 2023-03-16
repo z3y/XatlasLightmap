@@ -66,7 +66,6 @@ namespace z3y
                     var m_Renderer = renderers[i];
 
                     var mf = filters[i];
-                    var stream = m_Renderer.additionalVertexStreams;
                     var sm = mf.sharedMesh;
 
 
@@ -79,6 +78,7 @@ namespace z3y
                     Vector2[] lightmapUV;
                     var scale = m_Renderer.scaleInLightmap;
 
+
                     var area = CalculateArea(sm, objects[i].transform);
                     scale *= area;
 
@@ -90,7 +90,7 @@ namespace z3y
                     }
 
 
-                    stream = new Mesh
+                    var stream = new Mesh
                     {
                         vertices = sm.vertices,
                         normals = sm.normals,
@@ -202,7 +202,7 @@ namespace z3y
         {
             if (mesh.uv == null)
             {
-                return 0f;
+                return 1f;
             }
             var verts = mesh.vertices;
             var uvs = mesh.uv2 ?? mesh.uv;
@@ -211,7 +211,7 @@ namespace z3y
 
             if (uvs.Length != mesh.vertices.Length)
             {
-                return 0f;
+                return 1f;
             }
 
             for (int k = 0; k < mesh.subMeshCount; k++)
