@@ -1,10 +1,8 @@
 #if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using static UnityEngine.InputSystem.Editor.InputActionCodeGenerator;
 
 namespace z3y
 {
@@ -101,7 +99,7 @@ namespace z3y
 #if false
                 var pointerUV = handleUV.AddrOfPinnedObject();
 #else
-            var pointerUV = (System.IntPtr)0;
+                var pointerUV = (System.IntPtr)0;
 #endif
 
                 for (int i = 0; i < m.subMeshCount; i++)
@@ -156,7 +154,7 @@ namespace z3y
             }
 
             //if (normalize)
-                xatlasNormalize(atlas, null, false);
+            xatlasNormalize(atlas, null, false);
 
             // Collect UVs/xrefs/indices
             for (int i = 0; i < m.subMeshCount; i++)
@@ -346,7 +344,7 @@ namespace z3y
             //xatlasOnlyPackCharts(atlas);
             //xatlasParametrizeExt(atlas, true);
 
-            xatlasPackExt(atlas, res, 0, padding, bruteForce, res, true);//, true);
+            xatlasPackExt(atlas, res, 0, padding, bruteForce, res, true);
             xatlasNormalize(atlas, null, true);
 
             Debug.Log("xatlas time: " + (GetTime() - t));
@@ -368,7 +366,7 @@ namespace z3y
                 }
 
 
-            
+
                 // Collect UVs/xrefs/indices
                 for (int ii = 0; ii < m.subMeshCount; ii++)
                 {
