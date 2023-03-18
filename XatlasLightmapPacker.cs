@@ -6,7 +6,9 @@ using System.IO;
 using System.Linq;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -16,10 +18,13 @@ using Object = UnityEngine.Object;
 
 namespace z3y
 {
+    // since static batching already creates a copy of the same mesh for every instance
+    // there is no reason to use lightmap tiling and offset when we can just set different uv2 for each mesh renderer and pack them very efficiently
+    // this gets merged by static batching creating no additional cost
     [ExecuteInEditMode]
     public class XatlasLightmapPacker : MonoBehaviour
     {
-        public GameObject[] rootObjects;
+        public GameObject[] rootObjects; // the renderers here would be on the same lightmap group with no uv adjustments (original uv)
         public bool autoUpdateUVs = false;
         public bool clearStream = false;
         public bool bruteForce = false;
@@ -43,6 +48,8 @@ namespace z3y
             public Vector2[] lightmapUV;
         }
 
+        // This should probably be done somewhere else, but im not sure exactly when does unity clear the additionalVertexStreams
+        // it seems to happen on scene load, entering play mode and reload
         public void OnValidate()
         {
 
@@ -78,21 +85,54 @@ namespace z3y
                         continue;
                     }
 
-                    Vector2[] lightmapUV;
                     var scale = ignoreScaleInLightmap ? 1f : m_Renderer.scaleInLightmap;
+                    int length = sm.vertices.Length;
 
+                    Vector2[] lightmapUV = new Vector2[length];
+                    
+                    NativeArray<float3> verts = new NativeArray<float3>(length, Allocator.TempJob);
+                    NativeArray<float2> uvs = new NativeArray<float2>(length, Allocator.TempJob);
+                    NativeCollectionUtilities.CopyToNative(sm.vertices, verts);
+                    NativeCollectionUtilities.CopyToNative(sm.uv2 ?? sm.uv, uvs);
+
+                    Matrix4x4 modelMatrix = objects[i].transform.localToWorldMatrix;
+
+                    NativeArray<float> result = new NativeArray<float>(2, Allocator.TempJob);
+                    result[0] = 0;
+                    result[1] = 0;
+
+                    for (int j = 0; j < sm.subMeshCount; j++)
+                    {
+                        var indicies = new NativeArray<int>(sm.GetIndices(j), Allocator.TempJob);
+
+                        var areaMultiplier = new CalculateChartsAreaMultiplierJob(verts, uvs, modelMatrix, indicies, scale, result);
+                        areaMultiplier.Run();
+
+                        indicies.Dispose();
+                    }
+                    float area = result[0];
+                    float uvArea = result[1];
+                    float finalScale = math.sqrt(area) / math.sqrt(uvArea);
+
+                    var scaleJob = new ScaleUVsJob(uvs, finalScale);
+                    scaleJob.Run(uvs.Length);
+
+                    NativeCollectionUtilities.CopyToManaged(uvs, lightmapUV);
+
+                    result.Dispose();
+                    uvs.Dispose();
+                    verts.Dispose();
+/*
 
                     var area = CalculateArea(sm, objects[i].transform);
                     scale *= area;
-
-                    lightmapUV = new Vector2[sm.uv2.Length];
 
                     for (int j = 0; j < lightmapUV.Length; j++)
                     {
                         lightmapUV[j] = sm.uv2[j] * scale;
                     }
 
-
+*/
                     var stream = new Mesh
                     {
                         vertices = sm.vertices,
@@ -104,10 +144,10 @@ namespace z3y
                     };
 
 
-
                     meshes.Add(stream);
 
                 }
+
 
                 if (clearStream)
                 {
@@ -115,13 +155,13 @@ namespace z3y
                 }
 
 
-                z3y.xatlas.PackLightmap(meshes.ToArray(), padding, lightmapSize, bruteForce);
+                xatlas.PackLightmap(meshes.ToArray(), padding, lightmapSize, bruteForce);
 
                 meshCache = new LightmapMeshData[meshes.Count];
                 for (int k = 0; k < meshCache.Length; k++)
                 {
                     var m = meshes[k];
-                    m.UploadMeshData(true);
+                    //m.UploadMeshData(true);
                     meshCache[k] = new LightmapMeshData(m.uv2);
                     DestroyImmediate(m);
                 }
@@ -137,9 +177,14 @@ namespace z3y
                     Debug.LogError("Vertex count not the same + " + mf.sharedMesh.name + " " + meshCache[i].lightmapUV.Length + " original: " + mf.sharedMesh.vertices.Length);
                 }
 
+
                 var avs = m_Renderer.additionalVertexStreams;
                 var sm = mf.sharedMesh;
 
+
+                // vertices have to be set to match the uv2 length
+                // it can cause problems when editing and reimporting the geometry but thankfully its non destructive and setting them again or clearing streams fixes it
+                // reimport should be detected and this data updated so the mesh doesnt look messed up
                 if (avs == null)
                 {
                     avs = new Mesh
@@ -203,6 +248,7 @@ namespace z3y
             }
         }
 
+        // this is a bit slow
         private float CalculateArea(Mesh mesh, Transform t)
         {
             if (mesh.uv == null)
@@ -228,7 +274,7 @@ namespace z3y
                     var indexB = indices[j + 1];
                     var indexC = indices[j + 2];
 
-                    var v1 = verts[indexA]; // should be transformed position
+                    var v1 = verts[indexA];
                     var v2 = verts[indexB];
                     var v3 = verts[indexC];
                     v1 = t.TransformPoint(v1);
@@ -240,15 +286,103 @@ namespace z3y
                     var u1 = uvs[indexA];
                     var u2 = uvs[indexB];
                     var u3 = uvs[indexC];
-                    uvArea += Vector3.Cross(u2 - u1, u3 - u1).magnitude;
+
+                    var d = determinant(u1, u2, u3);
+                    uvArea += math.abs(d);
                 }
             }
+
+
 
             area = Mathf.Sqrt(area) / Mathf.Sqrt(uvArea);
 
             return area;
         }
+
+        float determinant(float2 c, float2 c2, float2 c3)
+        {
+            float num = c2.y - c3.y;
+            float num2 = c.y - c3.y;
+            float num3 = c.y - c2.y;
+            return c.x * num - c2.x * num2 + c3.x * num3;
+        }
+
+        [BurstCompile(CompileSynchronously = true)]
+        private struct CalculateChartsAreaMultiplierJob : IJob
+        {
+            public CalculateChartsAreaMultiplierJob(NativeArray<float3> verts, NativeArray<float2> uvs, Matrix4x4 modelMatrix, NativeArray<int> indices, float scaleMultiplier, NativeArray<float> result)
+            {
+                this.verts = verts;
+                this.uvs = uvs;
+                this.modelMatrix = modelMatrix;
+                this.indices = indices;
+                this.scaleMultiplier = scaleMultiplier;
+                this.result = result;
+            }
+
+            public NativeArray<int> indices;
+            public NativeArray<float3> verts;
+            public NativeArray<float2> uvs;
+            public float4x4 modelMatrix;
+            public float scaleMultiplier;
+
+            public NativeArray<float> result; // length 2
+
+            float determinant(float2 c, float2 c2, float2 c3)
+            {
+                float num = c2.y - c3.y;
+                float num2 = c.y - c3.y;
+                float num3 = c.y - c2.y;
+                return c.x * num - c2.x * num2 + c3.x * num3;
+            }
+
+            public void Execute()
+            {
+                for (int i = 0; i < indices.Length; i += 3)
+                {
+                    var indexA = indices[i];
+                    var indexB = indices[i + 1];
+                    var indexC = indices[i + 2];
+
+                    var v1 = verts[indexA];
+                    var v2 = verts[indexB];
+                    var v3 = verts[indexC];
+                    v1 = math.transform(modelMatrix, v1);
+                    v2 = math.transform(modelMatrix, v2);
+                    v3 = math.transform(modelMatrix, v3);
+
+                    result[0] += math.length(math.cross(v2 - v1, v3 - v1));
+
+                    var u1 = uvs[indexA];
+                    var u2 = uvs[indexB];
+                    var u3 = uvs[indexC];
+
+                    var d = determinant(u1, u2, u3);
+                    result[1] += math.abs(d);
+                }
+            }
+        }
+
+        [BurstCompile(CompileSynchronously = true)]
+        private struct ScaleUVsJob : IJobParallelFor
+        {
+            public ScaleUVsJob(NativeArray<float2> uvs, float scale)
+            {
+                this.uvs = uvs;
+                this.scale = scale;
+            }
+
+            public NativeArray<float2> uvs;
+            float scale;
+            public void Execute(int index)
+            {
+                uvs[index] *= scale;
+            }
+        }
     }
+
+    // remove the gameobject so we dont store this data for runtime since its not needed
+    // uv data could also probably be stored somewhere else in the project, but for now this was easier
     public class RemoveObjectOnBuild : IProcessSceneWithReport
     {
         public int callbackOrder => 0;
