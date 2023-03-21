@@ -88,51 +88,71 @@ namespace z3y
                     var scale = ignoreScaleInLightmap ? 1f : m_Renderer.scaleInLightmap;
                     int length = sm.vertices.Length;
 
+                    string errorMsh = $"Vertex count does not match UV count {sm.name}";
+                    if (sm.uv != null && sm.uv.Length != length)
+                    {
+                        Debug.LogError(errorMsh);
+                        continue;
+                    }
+                    else if (sm.uv2 != null && sm.uv2.Length != length)
+                    {
+                        Debug.LogError(errorMsh);
+                        continue;
+                    }
+                    else if (sm.uv == null || sm.uv2 == null)
+                    {
+                        Debug.LogError($"Mesh has no UVs {sm.name}");
+                    }
+
                     Vector2[] lightmapUV = new Vector2[length];
-                    
+#if true
                     NativeArray<float3> verts = new NativeArray<float3>(length, Allocator.TempJob);
                     NativeArray<float2> uvs = new NativeArray<float2>(length, Allocator.TempJob);
                     NativeCollectionUtilities.CopyToNative(sm.vertices, verts);
                     NativeCollectionUtilities.CopyToNative(sm.uv2 ?? sm.uv, uvs);
-
-                    Matrix4x4 modelMatrix = objects[i].transform.localToWorldMatrix;
-
                     NativeArray<float> result = new NativeArray<float>(2, Allocator.TempJob);
-                    result[0] = 0;
-                    result[1] = 0;
-
-                    for (int j = 0; j < sm.subMeshCount; j++)
+                    try
                     {
-                        var indicies = new NativeArray<int>(sm.GetIndices(j), Allocator.TempJob);
+                        Matrix4x4 modelMatrix = objects[i].transform.localToWorldMatrix;
 
-                        var areaMultiplier = new CalculateChartsAreaMultiplierJob(verts, uvs, modelMatrix, indicies, scale, result);
-                        areaMultiplier.Run();
+                        result[0] = 0;
+                        result[1] = 0;
 
-                        indicies.Dispose();
+                        for (int j = 0; j < sm.subMeshCount; j++)
+                        {
+                            var indicies = new NativeArray<int>(sm.GetIndices(j), Allocator.TempJob);
+
+                            var areaMultiplier = new CalculateChartsAreaMultiplierJob(verts, uvs, modelMatrix, indicies, scale, result);
+                            areaMultiplier.Run();
+
+                            indicies.Dispose();
+                        }
+                        float area = result[0];
+                        float uvArea = result[1];
+                        float finalScale = math.sqrt(area) / math.sqrt(uvArea);
+
+                        var scaleJob = new ScaleUVsJob(uvs, finalScale);
+                        scaleJob.Run(uvs.Length);
+
+                        NativeCollectionUtilities.CopyToManaged(uvs, lightmapUV);
                     }
-                    float area = result[0];
-                    float uvArea = result[1];
-                    float finalScale = math.sqrt(area) / math.sqrt(uvArea);
-
-                    var scaleJob = new ScaleUVsJob(uvs, finalScale);
-                    scaleJob.Run(uvs.Length);
-
-                    NativeCollectionUtilities.CopyToManaged(uvs, lightmapUV);
-
-                    result.Dispose();
-                    uvs.Dispose();
-                    verts.Dispose();
-/*
-
+                    finally
+                    { 
+                        result.Dispose();
+                        uvs.Dispose();
+                        verts.Dispose();
+                    }
+#else
                     var area = CalculateArea(sm, objects[i].transform);
                     scale *= area;
+                    var refUv = sm.uv2 ?? sm.uv;
 
                     for (int j = 0; j < lightmapUV.Length; j++)
                     {
-                        lightmapUV[j] = sm.uv2[j] * scale;
+                        lightmapUV[j] = refUv[j] * scale;
                     }
 
-*/
+#endif
                     var stream = new Mesh
                     {
                         vertices = sm.vertices,
@@ -175,6 +195,7 @@ namespace z3y
                 if (meshCache[i].lightmapUV.Length != mf.sharedMesh.vertices.Length)
                 {
                     Debug.LogError("Vertex count not the same + " + mf.sharedMesh.name + " " + meshCache[i].lightmapUV.Length + " original: " + mf.sharedMesh.vertices.Length);
+                    continue;
                 }
 
 
