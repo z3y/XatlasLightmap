@@ -12,6 +12,7 @@ using Unity.Mathematics;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.Sprites;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
@@ -26,15 +27,12 @@ namespace z3y
     {
         public GameObject[] rootObjects; // the renderers here would be on the same lightmap group with no uv adjustments (original uv)
         public bool autoUpdateUVs = false;
-        public bool clearStream = false;
-        public bool bruteForce = false;
+        const bool bruteForce = false;
 
         public bool ignoreScaleInLightmap = false;
 
         public int lightmapSize = 1024;
         public int padding = 2;
-
-        public bool regenerate = false;
 
         [SerializeField] public LightmapMeshData[] meshCache;
 
@@ -50,27 +48,30 @@ namespace z3y
 
         // This should probably be done somewhere else, but im not sure exactly when does unity clear the additionalVertexStreams
         // it seems to happen on scene load, entering play mode and reload
-        public void OnValidate()
-        {
 
+        private void OnValidate()
+        {
             if (!autoUpdateUVs)
             {
                 return;
             }
+            Execute(false);
+        }
 
-            if (regenerate)
-            {
-                meshCache = null;
-            }
+        public void ClearVertexStreams()
+        {
+            autoUpdateUVs = false;
+            meshCache = null;
+            Execute(true);
+        }
 
+        private void Execute(bool clearStream)
+        {
             var meshes = new List<Mesh>();
             GetActiveTransformsWithRenderers(rootObjects, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
 
             if (meshCache == null || meshCache.Length == 0 || meshCache.Length != objects.Count)
             {
-
-
-
                 for (int i = 0; i < objects.Count; i++)
                 {
                     var m_Renderer = renderers[i];
@@ -137,7 +138,7 @@ namespace z3y
                         NativeCollectionUtilities.CopyToManaged(uvs, lightmapUV);
                     }
                     finally
-                    { 
+                    {
                         result.Dispose();
                         uvs.Dispose();
                         verts.Dispose();
@@ -227,7 +228,13 @@ namespace z3y
                 avs.UploadMeshData(false);
             }
 
-            regenerate = false;
+        }
+
+        public void RePackCharts()
+        {
+            autoUpdateUVs = true;
+            meshCache = null;
+            Execute(false);
         }
 
         private void GetActiveTransformsWithRenderers(GameObject[] rootObjs, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> obs)
@@ -404,7 +411,7 @@ namespace z3y
 
     // remove the gameobject so we dont store this data for runtime since its not needed
     // uv data could also probably be stored somewhere else in the project, but for now this was easier
-    public class RemoveObjectOnBuild : IProcessSceneWithReport
+    public class ClearDataOnBuild : IProcessSceneWithReport
     {
         public int callbackOrder => 0;
 
@@ -427,8 +434,32 @@ namespace z3y
             //Debug.Log(instances.Count);
             for (int i = 0; i < instances.Count; i++)
             {
-                instances[i].OnValidate();
-                Object.DestroyImmediate(instances[i].gameObject);
+                instances[i].RePackCharts();
+                instances[i].meshCache = null;
+            }
+        }
+    }
+
+    [CustomEditor(typeof(XatlasLightmapPacker))]
+    [CanEditMultipleObjects]
+    public class XatlasLightmapPackerEditor : Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
+            for (int i = 0; i < targets.Length; i++)
+            {
+                var t = targets[i];
+
+                var packer = t as XatlasLightmapPacker;
+
+                if (GUILayout.Button("Pack"))
+                    packer.RePackCharts();
+                if (GUILayout.Button("Clear"))
+                {
+
+                    packer.ClearVertexStreams();
+                }
             }
         }
     }
