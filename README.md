@@ -7,5 +7,6 @@
 - Bake
 
 If the mesh looks wrong after changing it, clear the streams and pack again
+Breaks GPU instancing
 
 ![Screenshot 2023-03-18 164316](https://user-images.githubusercontent.com/33181641/227739457-d5bd302d-ba14-4e1f-a745-da5942e1215b.png)
