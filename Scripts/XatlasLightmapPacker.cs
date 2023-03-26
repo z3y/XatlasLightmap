@@ -91,17 +91,18 @@ namespace z3y
                     int length = sm.vertices.Length;
 
                     string errorMsh = $"Vertex count does not match UV count {sm.name}";
-                    if (sm.uv != null && sm.uv.Length != length)
+                    
+                    if (sm.uv2 != null && sm.uv2.Length != length)
                     {
                         Debug.LogError(errorMsh);
                         continue;
                     }
-                    else if (sm.uv2 != null && sm.uv2.Length != length)
+                    else if (sm.uv2 == null && sm.uv != null && sm.uv.Length != length)
                     {
                         Debug.LogError(errorMsh);
                         continue;
                     }
-                    else if (sm.uv == null || sm.uv2 == null)
+                    else if (sm.uv2 == null)
                     {
                         Debug.LogError($"Mesh has no UVs {sm.name}");
                     }
@@ -273,6 +274,11 @@ namespace z3y
 
 
                 if (f.sharedMesh == null)
+                {
+                    continue;
+                }
+
+                if (r.receiveGI != ReceiveGI.Lightmaps)
                 {
                     continue;
                 }
