@@ -86,6 +86,7 @@ namespace z3y
                         continue;
                     }
 
+
                     var scale = ignoreScaleInLightmap ? 1f : m_Renderer.scaleInLightmap;
                     int length = sm.vertices.Length;
 
@@ -266,6 +267,12 @@ namespace z3y
                 var f = root.GetComponent<MeshFilter>();
 
                 if (!f || !r)
+                {
+                    continue;
+                }
+
+
+                if (f.sharedMesh == null)
                 {
                     continue;
                 }
