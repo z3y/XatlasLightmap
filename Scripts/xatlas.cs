@@ -347,7 +347,7 @@ namespace z3y
             xatlasPackExt(atlas, res, 0, padding, bruteForce, res, true);
             xatlasNormalize(atlas, null, true);
 
-            Debug.Log("xatlas time: " + (GetTime() - t));
+            //Debug.Log("xatlas time: " + (GetTime() - t));
             t = GetTime();
 
             int meshIndex = 0;

@@ -246,16 +246,12 @@ namespace z3y
                     continue;
                 }
 
+                var objName = o.name;
+
                 var r = root.GetComponent<MeshRenderer>();
                 var f = root.GetComponent<MeshFilter>();
 
                 if (!f || !r)
-                {
-                    continue;
-                }
-
-
-                if (f.sharedMesh == null)
                 {
                     continue;
                 }
@@ -265,9 +261,20 @@ namespace z3y
                     continue;
                 }
 
+                if (r.scaleInLightmap == 0)
+                {
+                    continue;
+                }
+
+                if (f.sharedMesh == null)
+                {
+                    //infoMsg.AppendLine($"{objName}: has no shared mesh");
+                    continue;
+                }
+
+
 
                 var sm = f.sharedMesh;
-                var objName = o.name;
 
                 if (sm.vertices == null)
                 {
@@ -297,7 +304,7 @@ namespace z3y
             var msg = infoMsg.ToString();
             if (!string.IsNullOrEmpty(msg))
             {
-                Debug.Log(msg);
+                Debug.LogWarning(msg);
             }
         }
 
