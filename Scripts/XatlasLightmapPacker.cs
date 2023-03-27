@@ -1,21 +1,16 @@
 ﻿#if UNITY_EDITOR
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using System.Text;
 using Unity.Burst;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
-using UnityEditor.Sprites;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using Object = UnityEngine.Object;
 
 namespace z3y
 {
@@ -35,6 +30,7 @@ namespace z3y
         public int padding = 2;
 
         [SerializeField] public LightmapMeshData[] meshCache;
+
 
         [Serializable]
         public struct LightmapMeshData
@@ -90,22 +86,6 @@ namespace z3y
                     var scale = ignoreScaleInLightmap ? 1f : m_Renderer.scaleInLightmap;
                     int length = sm.vertices.Length;
 
-                    string errorMsh = $"Vertex count does not match UV count {sm.name}";
-                    
-                    if (sm.uv2 != null && sm.uv2.Length != length)
-                    {
-                        Debug.LogError(errorMsh);
-                        continue;
-                    }
-                    else if (sm.uv2 == null && sm.uv != null && sm.uv.Length != length)
-                    {
-                        Debug.LogError(errorMsh);
-                        continue;
-                    }
-                    else if (sm.uv2 == null)
-                    {
-                        Debug.LogError($"Mesh has no UVs {sm.name}");
-                    }
 
                     Vector2[] lightmapUV = new Vector2[length];
 #if true
@@ -241,6 +221,7 @@ namespace z3y
 
         private void GetActiveTransformsWithRenderers(GameObject[] rootObjs, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> obs)
         {
+            var infoMsg = new StringBuilder();
 
             var roots = new List<Transform>();
 
@@ -283,9 +264,39 @@ namespace z3y
                     continue;
                 }
 
+
+                var sm = f.sharedMesh;
+                var objName = o.name;
+
+                if (sm.vertices == null)
+                {
+                    infoMsg.AppendLine($"{objName}: mesh has no vertices");
+                    continue;
+                }
+
+                if (sm.uv2 == null && sm.uv == null)
+                {
+                    infoMsg.AppendLine($"{objName}: mesh has no uvs");
+                    continue;
+                }
+
+                var uv = sm.uv2 ?? sm.uv;
+
+                if (uv.Length != sm.vertices.Length)
+                {
+                    infoMsg.AppendLine($"{objName}: uv length does not equal vertices length");
+                    continue;
+                }
+
                 obs.Add(o);
                 renderers.Add(r);
                 filters.Add(f);
+            }
+
+            var msg = infoMsg.ToString();
+            if (!string.IsNullOrEmpty(msg))
+            {
+                Debug.Log(msg);
             }
         }
 
