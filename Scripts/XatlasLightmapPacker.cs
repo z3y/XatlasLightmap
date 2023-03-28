@@ -490,11 +490,15 @@ namespace z3y
 
                 var packer = t as XatlasLightmapPacker;
 
+
                 if (GUILayout.Button("Pack"))
+                {
+                    EditorUtility.SetDirty(packer.gameObject);
                     packer.RePackCharts();
+                }
                 if (GUILayout.Button("Clear"))
                 {
-
+                    EditorUtility.SetDirty(packer.gameObject);
                     packer.ClearVertexStreams();
                 }
             }
