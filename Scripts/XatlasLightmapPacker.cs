@@ -241,7 +241,12 @@ namespace z3y
             foreach (var root in roots)
             {
                 var o = root.gameObject;
-                if (!o.activeInHierarchy || !o.isStatic)
+                if (!o.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                if (!GameObjectUtility.GetStaticEditorFlags(o).HasFlag(StaticEditorFlags.ContributeGI))
                 {
                     continue;
                 }
