@@ -50,23 +50,26 @@ namespace z3y
             {
                 return;
             }
-            Execute(false);
+            Execute(false, false);
         }
 
         public void ClearVertexStreams()
         {
             autoUpdateUVs = false;
-            Execute(true);
+            Execute(true, false);
         }
 
-        private void Execute(bool clearStream)
+        private void Execute(bool clearStream, bool regenerateData)
         {
             var meshes = new List<Mesh>();
             GetActiveTransformsWithRenderers(rootObjects, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
 
             LightmapMeshData[] meshCache = null;
-            TryReadData(ref meshCache);
-
+            if (!regenerateData)
+            {
+                TryReadData(ref meshCache);
+            }
+            bool needsSave = meshCache == null;
 
             if (clearStream || meshCache == null || meshCache.Length == 0 || meshCache.Length != objects.Count)
             {
@@ -212,14 +215,17 @@ namespace z3y
                 avs.UploadMeshData(false);
             }
 
-            WriteData(meshCache);
+            if (needsSave)
+            {
+                WriteData(meshCache);
+            }
 
         }
 
         public void RePackCharts()
         {
             autoUpdateUVs = true;
-            Execute(false);
+            Execute(false, true);
         }
 
         private void GetActiveTransformsWithRenderers(GameObject[] rootObjs, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> obs)
