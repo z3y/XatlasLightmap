@@ -1,6 +1,7 @@
 ﻿#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Unity.Burst;
@@ -30,9 +31,6 @@ namespace z3y
         public int lightmapSize = 1024;
         public int padding = 2;
 
-        [SerializeField] public LightmapMeshData[] meshCache;
-
-
         [Serializable]
         public struct LightmapMeshData
         {
@@ -58,7 +56,6 @@ namespace z3y
         public void ClearVertexStreams()
         {
             autoUpdateUVs = false;
-            meshCache = null;
             Execute(true);
         }
 
@@ -67,7 +64,11 @@ namespace z3y
             var meshes = new List<Mesh>();
             GetActiveTransformsWithRenderers(rootObjects, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
 
-            if (meshCache == null || meshCache.Length == 0 || meshCache.Length != objects.Count)
+            LightmapMeshData[] meshCache = null;
+            TryReadData(ref meshCache);
+
+
+            if (clearStream || meshCache == null || meshCache.Length == 0 || meshCache.Length != objects.Count)
             {
                 for (int i = 0; i < objects.Count; i++)
                 {
@@ -211,12 +212,13 @@ namespace z3y
                 avs.UploadMeshData(false);
             }
 
+            WriteData(meshCache);
+
         }
 
         public void RePackCharts()
         {
             autoUpdateUVs = true;
-            meshCache = null;
             Execute(false);
         }
 
@@ -444,38 +446,41 @@ namespace z3y
                 uvs[index] *= scale;
             }
         }
-    }
 
-    // remove the gameobject so we dont store this data for runtime since its not needed
-    // uv data could also probably be stored somewhere else in the project, but for now this was easier
-    public class ClearDataOnBuild : IProcessSceneWithReport
-    {
-        public int callbackOrder => 0;
-
-        public void OnProcessScene(Scene scene, BuildReport report)
+        private void WriteData(LightmapMeshData[] data)
         {
-            var rootGameObjects = scene.GetRootGameObjects();
+            string json = JsonHelper.ToJson(data);
+            File.WriteAllText(GetDataPath(), json);
+        }
 
-            var instances = new List<XatlasLightmapPacker>();
-
-            foreach (var gameObject in rootGameObjects)
+        private void TryReadData(ref LightmapMeshData[] data)
+        {
+            var path = GetDataPath();
+            if (!File.Exists(path))
             {
-                var xatlasLightmapPackers = gameObject.GetComponentsInChildren<XatlasLightmapPacker>(false);
-                if (xatlasLightmapPackers is null || xatlasLightmapPackers.Length == 0)
-                {
-                    continue;
-                }
-                instances.AddRange(xatlasLightmapPackers);
+                return;
             }
 
-            //Debug.Log(instances.Count);
-            for (int i = 0; i < instances.Count; i++)
+            var json = File.ReadAllText(path);
+            data = JsonHelper.FromJson<LightmapMeshData>(json);
+        }
+
+        private string GetDataPath()
+        {
+            string libraryPath = Path.Combine(Application.dataPath, "../Library/XatlasCache");
+
+            if (!Directory.Exists(libraryPath))
             {
-                instances[i].RePackCharts();
-                instances[i].meshCache = null;
+                Directory.CreateDirectory(libraryPath);
             }
+
+            var idString = GlobalObjectId.GetGlobalObjectIdSlow(gameObject);
+            var sceneGuid = AssetDatabase.AssetPathToGUID(gameObject.scene.path);
+
+            return Path.Combine(libraryPath, idString.targetObjectId + sceneGuid);
         }
     }
+
 
     [CustomEditor(typeof(XatlasLightmapPacker))]
     [CanEditMultipleObjects]
@@ -502,6 +507,28 @@ namespace z3y
                     packer.ClearVertexStreams();
                 }
             }
+        }
+    }
+
+    public static class JsonHelper
+    {
+        public static T[] FromJson<T>(string json)
+        {
+            Wrapper<T> wrapper = UnityEngine.JsonUtility.FromJson<Wrapper<T>>(json);
+            return wrapper.Items;
+        }
+
+        public static string ToJson<T>(T[] array)
+        {
+            Wrapper<T> wrapper = new Wrapper<T>();
+            wrapper.Items = array;
+            return UnityEngine.JsonUtility.ToJson(wrapper);
+        }
+
+        [Serializable]
+        private class Wrapper<T>
+        {
+            public T[] Items;
         }
     }
 }
