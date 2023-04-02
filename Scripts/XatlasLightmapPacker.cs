@@ -227,6 +227,10 @@ namespace z3y
             autoUpdateUVs = true;
             Execute(false, true);
         }
+        public void PackCharts()
+        {
+            Execute(false, false);
+        }
 
         private void GetActiveTransformsWithRenderers(GameObject[] rootObjs, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> obs)
         {
@@ -486,7 +490,29 @@ namespace z3y
             return Path.Combine(libraryPath, idString.targetObjectId + sceneGuid);
         }
     }
+    public class ClearDataOnBuild : IProcessSceneWithReport
+    {
+        public int callbackOrder => 0;
+        public void OnProcessScene(Scene scene, BuildReport report)
+        {
+            var rootGameObjects = scene.GetRootGameObjects();
+            var instances = new List<XatlasLightmapPacker>();
+            foreach (var gameObject in rootGameObjects)
+            {
+                var xatlasLightmapPackers = gameObject.GetComponentsInChildren<XatlasLightmapPacker>(false);
+                if (xatlasLightmapPackers is null || xatlasLightmapPackers.Length == 0)
+                {
+                    continue;
+                }
+                instances.AddRange(xatlasLightmapPackers);
+            }
 
+            for (int i = 0; i < instances.Count; i++)
+            {
+                instances[i].PackCharts();
+            }
+        }
+    }
 
     [CustomEditor(typeof(XatlasLightmapPacker))]
     [CanEditMultipleObjects]
