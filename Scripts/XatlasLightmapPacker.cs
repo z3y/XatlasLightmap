@@ -12,6 +12,7 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
 namespace z3y
@@ -173,6 +174,7 @@ namespace z3y
                     meshCache[k] = new LightmapMeshData(m.uv2);
                     DestroyImmediate(m);
                 }
+
             }
 
 
@@ -232,7 +234,7 @@ namespace z3y
             Execute(false, false);
         }
 
-        private void GetActiveTransformsWithRenderers(GameObject[] rootObjs, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> obs)
+        public void GetActiveTransformsWithRenderers(GameObject[] rootObjs, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> obs)
         {
             var infoMsg = new StringBuilder();
 
@@ -323,6 +325,59 @@ namespace z3y
             {
                 Debug.LogWarning(msg);
             }
+        }
+
+        //public RenderTexture rt;
+        //public Material mt;
+        //pr Material lmblur;
+        public Texture2D lightmap;
+        public void GaussianPrefilter(Renderer[] renderers)
+        {
+            if ( lightmap is null)
+            {
+                return;
+            }
+
+            var rt = new RenderTexture(lightmap.width, lightmap.height, 0, RenderTextureFormat.R8);
+
+            var lmblur = new Material(Shader.Find("Hidden/z3y/LMBlur"));
+            var mt = new Material(Shader.Find("Hidden/z3y/UnwrapUV"));
+
+            //RenderTexture.active = rt;
+            var cmd = new CommandBuffer();
+            cmd.SetRenderTarget(rt);
+            //mt.SetPass(0);
+
+            cmd.ClearRenderTarget(true, true, Color.black);
+
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                cmd.DrawRenderer(renderers[i], mt);
+            }
+
+            Graphics.ExecuteCommandBuffer(cmd);
+            cmd.Dispose();
+
+            lmblur.SetTexture("_MainTex", lightmap);
+            lmblur.SetTexture("_Mask", rt);
+            float width = lightmap.width;
+            float height = lightmap.height;
+            lmblur.SetVector("_lightmapRes", new Vector4(1.0f / width, 1.0f / height, width, height));
+
+            var lmrt = new RenderTexture(lightmap.width, lightmap.height, 0, RenderTextureFormat.ARGBFloat);
+            var tex = new Texture2D(lmrt.width, lmrt.height, TextureFormat.RGBAFloat, false);
+
+            RenderTexture.active = lmrt;
+            Graphics.Blit(null, lmrt, lmblur);
+            tex.ReadPixels(new Rect(0, 0, lmrt.width, lmrt.height), 0, 0);
+            tex.Apply(false);
+
+            RenderTexture.active = null;
+            var bytes = tex.EncodeToEXR(Texture2D.EXRFlags.CompressZIP);
+            //var bytes = tex.EncodeToPNG();
+            var path = AssetDatabase.GetAssetPath(lightmap);
+            File.WriteAllBytes(path, bytes);
+            AssetDatabase.ImportAsset(path);
         }
 
         // this is a bit slow
@@ -537,6 +592,13 @@ namespace z3y
                 {
                     EditorUtility.SetDirty(packer.gameObject);
                     packer.ClearVertexStreams();
+                }
+                if (GUILayout.Button("Gaussian Prefilter"))
+                {
+                    var meshes = new List<Mesh>();
+                    packer.GetActiveTransformsWithRenderers(packer.rootObjects, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
+                    //var lightmap = renderers[0].lightmapIndex;
+                    packer.GaussianPrefilter(renderers.ToArray());
                 }
             }
         }
