@@ -6,6 +6,8 @@
 
         _Mask ("Blur Mask", 2D) = "white" {}
 
+        _Size ("Size", Float) = 1
+
     }
     SubShader
     {
@@ -37,6 +39,7 @@
             float4 _MainTex_TexelSize;
 
             float2 _lightmapRes;
+            float _Size;
 
             sampler2D _Mask;
 
@@ -61,7 +64,7 @@
                 // GAUSSIAN BLUR SETTINGS {{{
                 float Directions = 32.0; // BLUR DIRECTIONS (Default 16.0 - More is better but slower)
                 float Quality = 6.0; // BLUR QUALITY (Default 4.0 - More is better but slower)
-                float Size = 2.0; // BLUR SIZE (Radius)
+                float Size = _Size; // BLUR SIZE (Radius)
                 // GAUSSIAN BLUR SETTINGS }}}
             
                 float2 Radius = _lightmapRes.xy * Size;

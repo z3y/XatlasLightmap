@@ -331,6 +331,8 @@ namespace z3y
         //public Material mt;
         //pr Material lmblur;
         public Texture2D lightmap;
+        [Range(1,5)]
+        public int radius = 2;
         public void GaussianPrefilter(Renderer[] renderers)
         {
             if ( lightmap is null)
@@ -360,6 +362,7 @@ namespace z3y
 
             lmblur.SetTexture("_MainTex", lightmap);
             lmblur.SetTexture("_Mask", rt);
+            lmblur.SetFloat("_Radius", radius);
             float width = lightmap.width;
             float height = lightmap.height;
             lmblur.SetVector("_lightmapRes", new Vector4(1.0f / width, 1.0f / height, width, height));
