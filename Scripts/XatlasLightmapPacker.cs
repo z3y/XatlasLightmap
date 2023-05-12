@@ -112,7 +112,7 @@ namespace z3y
                             var indicies = new NativeArray<int>(sm.GetIndices(j), Allocator.TempJob);
 
                             var areaMultiplier = new CalculateChartsAreaMultiplierJob(verts, uvs, modelMatrix, indicies, scale, result);
-                            areaMultiplier.Run();
+                            areaMultiplier.Run(indicies.Length/3);
 
                             indicies.Dispose();
                         }
@@ -442,8 +442,8 @@ namespace z3y
             return c.x * num - c2.x * num2 + c3.x * num3;
         }
 
-        [BurstCompile(CompileSynchronously = true)]
-        private struct CalculateChartsAreaMultiplierJob : IJob
+        [BurstCompile(CompileSynchronously = true, DisableSafetyChecks = true)]
+        private struct CalculateChartsAreaMultiplierJob : IJobParallelFor
         {
             public CalculateChartsAreaMultiplierJob(NativeArray<float3> verts, NativeArray<float2> uvs, Matrix4x4 modelMatrix, NativeArray<int> indices, float scaleMultiplier, NativeArray<float> result)
             {
@@ -471,30 +471,28 @@ namespace z3y
                 return c.x * num - c2.x * num2 + c3.x * num3;
             }
 
-            public void Execute()
+            public void Execute(int index)
             {
-                for (int i = 0; i < indices.Length; i += 3)
-                {
-                    var indexA = indices[i];
-                    var indexB = indices[i + 1];
-                    var indexC = indices[i + 2];
+                int i = index * 3;
+                var indexA = indices[i];
+                var indexB = indices[i + 1];
+                var indexC = indices[i + 2];
 
-                    var v1 = verts[indexA];
-                    var v2 = verts[indexB];
-                    var v3 = verts[indexC];
-                    v1 = math.transform(modelMatrix, v1);
-                    v2 = math.transform(modelMatrix, v2);
-                    v3 = math.transform(modelMatrix, v3);
+                var v1 = verts[indexA];
+                var v2 = verts[indexB];
+                var v3 = verts[indexC];
+                v1 = math.transform(modelMatrix, v1);
+                v2 = math.transform(modelMatrix, v2);
+                v3 = math.transform(modelMatrix, v3);
 
-                    result[0] += math.length(math.cross(v2 - v1, v3 - v1));
+                result[0] += math.length(math.cross(v2 - v1, v3 - v1));
 
-                    var u1 = uvs[indexA];
-                    var u2 = uvs[indexB];
-                    var u3 = uvs[indexC];
+                var u1 = uvs[indexA];
+                var u2 = uvs[indexB];
+                var u3 = uvs[indexC];
 
-                    var d = determinant(u1, u2, u3);
-                    result[1] += math.abs(d);
-                }
+                var d = determinant(u1, u2, u3);
+                result[1] += math.abs(d);
             }
         }
 
@@ -596,7 +594,7 @@ namespace z3y
                     EditorUtility.SetDirty(packer.gameObject);
                     packer.ClearVertexStreams();
                 }
-                if (GUILayout.Button("Gaussian Prefilter"))
+                if (GUILayout.Button("Gaussian Prefilter (wip)"))
                 {
                     var meshes = new List<Mesh>();
                     packer.GetActiveTransformsWithRenderers(packer.rootObjects, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
