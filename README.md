@@ -12,11 +12,18 @@ Model reimports are currently not detected, the mesh data will need to be update
 
 Since the packing is so efficient and the padding gets applied correctly most shaders will have slight bleeding at 2px, it is recommended to use a centroid interpolator for the lightmap uv.
 
-Breaks GPU instancing
+It also handles scaling of uv2 differently which allows it to have perfectly uniform texel density.
+
+Breaks GPU instancing.
 
 Sponza:
 
 ![Screenshot 2023-03-18 164316](https://user-images.githubusercontent.com/33181641/227739457-d5bd302d-ba14-4e1f-a745-da5942e1215b.png)
+
+Checker preview:
+
+![image](https://github.com/z3y/XatlasLightmap/assets/33181641/ab5af17a-ef49-442e-96cc-d0cd0295acdd)
+
 
 Sponza 2:
 
