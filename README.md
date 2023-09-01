@@ -10,6 +10,8 @@ This tool sets additional vertex streams on mesh renderers which allows for more
 
 Model reimports are currently not detected, the mesh data will need to be updated each time a mesh changes or it will look completely broken in the editor.
 
+Since the packing is so efficient and the padding gets applied correctly most shaders will have slight bleeding at 2px, it is recommended to use a centroid interpolator for the lightmap uv.
+
 Breaks GPU instancing
 
 Sponza:
