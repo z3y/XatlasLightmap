@@ -47,6 +47,11 @@ namespace z3y
 
         private void OnValidate()
         {
+            if (Application.isPlaying)
+            {
+                return;
+            }
+
             if (!autoUpdateUVs)
             {
                 return;
