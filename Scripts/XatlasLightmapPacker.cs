@@ -14,7 +14,6 @@ using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
-using VRC.SDKBase;
 
 namespace z3y
 {
@@ -22,7 +21,7 @@ namespace z3y
     // there is no reason to use lightmap tiling and offset when we can just set different uv2 for each mesh renderer and pack them very efficiently
     // this gets merged by static batching creating no additional cost
     [ExecuteInEditMode]
-    public class XatlasLightmapPacker : MonoBehaviour, VRC.SDKBase.IPreprocessCallbackBehaviour
+    public class XatlasLightmapPacker : MonoBehaviour //, VRC.SDKBase.IPreprocessCallbackBehaviour
     {
         public GameObject[] rootObjects; // the renderers here would be on the same lightmap group with no uv adjustments (original uv)
         public bool autoUpdateUVs = false;
@@ -600,15 +599,15 @@ namespace z3y
             return Path.Combine(libraryPath, idString.targetObjectId + sceneGuid);
         }
 
-        bool IPreprocessCallbackBehaviour.OnPreprocess()
+        /*bool IPreprocessCallbackBehaviour.OnPreprocess()
         {
             //PackCharts();
             return true;
-        }
+        }*/
     }
-    public class ClearDataOnBuild : IProcessSceneWithReport
+    public class PackDataOnBuild : IProcessSceneWithReport
     {
-        public int callbackOrder => 0;
+        public int callbackOrder => -10000;
         public void OnProcessScene(Scene scene, BuildReport report)
         {
             var rootGameObjects = scene.GetRootGameObjects();
