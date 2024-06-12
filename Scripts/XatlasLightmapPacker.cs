@@ -14,6 +14,7 @@ using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
+using VRC.SDKBase;
 
 namespace z3y
 {
@@ -21,7 +22,7 @@ namespace z3y
     // there is no reason to use lightmap tiling and offset when we can just set different uv2 for each mesh renderer and pack them very efficiently
     // this gets merged by static batching creating no additional cost
     [ExecuteInEditMode]
-    public class XatlasLightmapPacker : MonoBehaviour
+    public class XatlasLightmapPacker : MonoBehaviour, VRC.SDKBase.IPreprocessCallbackBehaviour
     {
         public GameObject[] rootObjects; // the renderers here would be on the same lightmap group with no uv adjustments (original uv)
         public bool autoUpdateUVs = false;
@@ -338,6 +339,9 @@ namespace z3y
         public Texture2D lightmap;
         [Range(1,5)]
         public int radius = 2;
+
+        public int PreprocessOrder => throw new NotImplementedException();
+
         public void GaussianPrefilter(Renderer[] renderers)
         {
             if ( lightmap is null)
@@ -520,8 +524,27 @@ namespace z3y
 
         private void WriteData(LightmapMeshData[] data)
         {
-            string json = JsonHelper.ToJson(data);
-            File.WriteAllText(GetDataPath(), json);
+            using (MemoryStream m = new MemoryStream())
+            {
+                using (BinaryWriter w = new BinaryWriter(m))
+                {
+                    w.Write(data.Length);
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        var uv = data[i].lightmapUV;
+
+                        w.Write(uv.Length);
+                        for (int j = 0; j < uv.Length; j++)
+                        {
+                            w.Write(uv[j].x);
+                            w.Write(uv[j].y);
+                        }
+                    }
+                }
+                var bytes = m.ToArray();
+
+                File.WriteAllBytes(GetDataPath(), bytes);
+            }
         }
 
         private void TryReadData(ref LightmapMeshData[] data)
@@ -532,8 +555,34 @@ namespace z3y
                 return;
             }
 
-            var json = File.ReadAllText(path);
-            data = JsonHelper.FromJson<LightmapMeshData>(json);
+            var bytes = File.ReadAllBytes(path);
+
+            using (MemoryStream m = new MemoryStream(bytes))
+            {
+                using (BinaryReader reader = new BinaryReader(m))
+                {
+                    var totalLength = reader.ReadInt32();
+
+                    var result = new LightmapMeshData[totalLength];
+
+                    for (int i = 0; i < result.Length; i++)
+                    {
+                        var length = reader.ReadInt32();
+
+                        var uvs = new Vector2[length];
+
+                        for (int j = 0; j < uvs.Length; j++)
+                        {
+                            uvs[j].x = reader.ReadSingle();
+                            uvs[j].y = reader.ReadSingle();
+                        }
+
+                        result[i].lightmapUV = uvs;
+                    }
+
+                    data = result;
+                }
+            }
         }
 
         private string GetDataPath()
@@ -549,6 +598,12 @@ namespace z3y
             var sceneGuid = AssetDatabase.AssetPathToGUID(gameObject.scene.path);
 
             return Path.Combine(libraryPath, idString.targetObjectId + sceneGuid);
+        }
+
+        bool IPreprocessCallbackBehaviour.OnPreprocess()
+        {
+            //PackCharts();
+            return true;
         }
     }
     public class ClearDataOnBuild : IProcessSceneWithReport
@@ -610,7 +665,7 @@ namespace z3y
         }
     }
 
-    public static class JsonHelper
+    /*public static class JsonHelper
     {
         public static T[] FromJson<T>(string json)
         {
@@ -630,6 +685,6 @@ namespace z3y
         {
             public T[] Items;
         }
-    }
+    }*/
 }
 #endif
