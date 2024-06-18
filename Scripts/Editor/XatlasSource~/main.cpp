@@ -254,5 +254,12 @@ extern "C"
 	{
 		xatlas::Destroy((xatlas::Atlas*)atlas);
 	}
+
+	_declspec(dllexport) void _cdecl xatlasRegisterProgressFunction(void* atlas, xatlas::ProgressFunc progressFunc)
+	{
+		xatlas::Atlas* a = (xatlas::Atlas*)atlas;
+
+		xatlas::SetProgressCallback(a, progressFunc);
+	}
 }
 

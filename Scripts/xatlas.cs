@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System;
 
 namespace z3y
 {
@@ -52,6 +53,24 @@ namespace z3y
 
         [DllImport("xatlas", CallingConvention = CallingConvention.Cdecl)]
         public static extern void xatlasOnlyPackCharts(System.IntPtr atlas);
+
+        public enum ProgressCategory
+        {
+            AddMesh,
+            ComputeCharts,
+            ParameterizeCharts,
+            PackCharts,
+            BuildOutputMeshes
+        }
+
+        public delegate bool ProgressFunction(ProgressCategory category, int progress, IntPtr userData);
+        [DllImport("xatlas", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void xatlasRegisterProgressFunction(System.IntPtr atlas, ProgressFunction progressFunc);
+
+        static bool ProgressCallback(ProgressCategory category, int progress, IntPtr userData)
+        {
+            return !EditorUtility.DisplayCancelableProgressBar("Packing", category.ToString(), progress / 100f);
+        }
 
         static T[] FillAtrribute<T>(List<int> xrefArray, T[] origArray)
         {
@@ -274,6 +293,8 @@ namespace z3y
             var t = GetTime();
             var atlas = xatlasCreateAtlas();
 
+            xatlasRegisterProgressFunction(atlas, ProgressCallback);
+
             bool error = false;
             for (int j = 0; j < meshes.Length; j++)
             {
@@ -331,6 +352,7 @@ namespace z3y
                 {
                     error = true;
                     xatlasClear(atlas);
+                    EditorUtility.ClearProgressBar();
                     return;
                 }
             }
@@ -338,6 +360,7 @@ namespace z3y
             if (error)
             {
                 Debug.LogError("xatlas failed");
+                EditorUtility.ClearProgressBar();
                 return;
             }
 
@@ -447,11 +470,13 @@ namespace z3y
                 if (is32bit && origIs16bit)
                 {
                     Debug.LogError("Unwrap failed: original mesh (" + m.name + ") has 16 bit indices, but unwrapped requires 32 bit.");
+                    EditorUtility.ClearProgressBar();
+
                     return;
                 }
 
                 // Duplicate attributes
-                //if (newXrefBuffer.Count > m.vertexCount) // commented because can be also swapped around
+/*                //if (newXrefBuffer.Count > m.vertexCount) // commented because can be also swapped around
                 {
                     m.vertices = FillAtrribute<Vector3>(newXrefBuffer, m.vertices);
                     m.normals = FillAtrribute<Vector3>(newXrefBuffer, m.normals);
@@ -468,16 +493,18 @@ namespace z3y
                     m.uv8 = FillAtrribute<Vector2>(newXrefBuffer, m.uv8);
 #endif
                 }
-
+*/
                 m.uv2 = newUVBuffer.ToArray();
 
 
                 //Set indices
-                for (int i = 0; i < m.subMeshCount; i++)
+                /*for (int i = 0; i < m.subMeshCount; i++)
                 {
                     m.SetTriangles(indexBuffers[i], i);
-                }
+                }*/
             }
+
+            EditorUtility.ClearProgressBar();
 
             xatlasClear(atlas);
         }
