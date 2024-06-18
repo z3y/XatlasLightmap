@@ -126,7 +126,7 @@ namespace z3y
                     NativeArray<float3> verts = new NativeArray<float3>(length, Allocator.TempJob);
                     NativeArray<float2> uvs = new NativeArray<float2>(length, Allocator.TempJob);
                     NativeCollectionUtilities.CopyToNative(sm.vertices, verts);
-                    NativeCollectionUtilities.CopyToNative(sm.uv2 ?? sm.uv, uvs);
+                    NativeCollectionUtilities.CopyToNative(sm.HasVertexAttribute(VertexAttribute.TexCoord1) ? sm.uv2 : sm.uv, uvs);
                     NativeArray<float> result = new NativeArray<float>(2, Allocator.TempJob);
                     try
                     {
@@ -728,6 +728,15 @@ namespace z3y
             if (packer.lightmapGroup == null)
             {
                 return;
+            }
+
+            var storage = FindObjectOfType<ftLightmapsStorage>();
+            if (storage != null)
+            {
+                if (!(storage.renderSettingsForceDisableUnwrapUVs || !storage.renderSettingsUnwrapUVs))
+                {
+                    EditorGUILayout.HelpBox("Disable Adjust UV Padding in bakery lightmap settings", MessageType.Warning);
+                }
             }
 
 
