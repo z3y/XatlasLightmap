@@ -31,7 +31,7 @@ namespace z3y
         public bool ignoreScaleInLightmap = false;
 
         //public int lightmapSize = 1024;
-        public int LightmapSize() => lightmapGroup.resolution;
+        public int LightmapSize() => lightmapGroup == null ? 1024 : lightmapGroup.resolution;
         public int padding = 2;
 
         [Serializable]
@@ -87,7 +87,7 @@ namespace z3y
             Execute(true, false);
         }
 
-        private void Execute(bool clearStream, bool regenerateData)
+        public void Execute(bool clearStream, bool regenerateData)
         {
             var meshes = new List<Mesh>();
             var rootObjects = GetRootGameObjectsFromGroup();
@@ -280,6 +280,7 @@ namespace z3y
             filters = new List<MeshFilter>();
             obs = new List<GameObject>();
 
+
             foreach (var root in roots)
             {
                 var o = root.gameObject;
@@ -335,7 +336,7 @@ namespace z3y
                     continue;
                 }
 
-                var uv = sm.uv2 ?? sm.uv;
+                var uv = sm.HasVertexAttribute(VertexAttribute.TexCoord1) ? sm.uv2 : sm.uv;
 
                 if (uv.Length != sm.vertices.Length)
                 {
@@ -656,8 +657,18 @@ namespace z3y
     [CanEditMultipleObjects]
     public class XatlasLightmapPackerEditor : Editor
     {
+        bool _firstFrame = true;
+
+
+        List<MeshFilter> _meshFilters;
         public override void OnInspectorGUI()
         {
+
+            if (Application.isPlaying)
+            {
+                return;
+            }
+
             DrawDefaultInspector();
             for (int i = 0; i < targets.Length; i++)
             {
@@ -688,16 +699,18 @@ namespace z3y
 
             EditorGUILayout.Space();
             Warnings();
+
+            _firstFrame = false;
         }
 
         // Mimics the normal map import warning - written by Orels1
-        private static bool WarningBox(string message)
+        private static bool WarningBox(string message, string fixText = "Fix Now")
         {
             GUILayout.BeginVertical(new GUIStyle(EditorStyles.helpBox));
             EditorGUILayout.LabelField(message, new GUIStyle(EditorStyles.label) { fontSize = 11, wordWrap = true });
             EditorGUILayout.BeginHorizontal(new GUIStyle() { alignment = TextAnchor.MiddleRight }, GUILayout.Height(24));
             EditorGUILayout.Space();
-            var buttonPress = GUILayout.Button("Fix Now", new GUIStyle("button")
+            var buttonPress = GUILayout.Button(fixText, new GUIStyle("button")
             {
                 stretchWidth = false,
                 margin = new RectOffset(0, 0, 0, 0),
@@ -708,12 +721,21 @@ namespace z3y
             return buttonPress;
         }
 
+        Vector2 _scrollPos;
         void Warnings()
         {
             var packer = target as XatlasLightmapPacker;
             if (packer.lightmapGroup == null)
             {
                 return;
+            }
+
+
+            if (_firstFrame)
+            {
+                var rootObjects = packer.GetRootGameObjectsFromGroup();
+                packer.GetActiveTransformsWithRenderers(rootObjects, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
+                _meshFilters = filters;
             }
 
             var group = packer.lightmapGroup;
@@ -726,6 +748,54 @@ namespace z3y
                     EditorUtility.SetDirty(group);
                 }
             }
+
+
+            // this is cursed but how else do i know in advance if i should draw the scroll view lol
+            bool hasWarnings = false;
+            for (int i = 0; i < _meshFilters.Count; i++)
+            {
+                var m = _meshFilters[i].sharedMesh;
+
+                if (!m.HasVertexAttribute(VertexAttribute.TexCoord1))
+                {
+                    hasWarnings = true; break;
+                }
+
+                if (!m.isReadable)
+                {
+                    hasWarnings = true; break;
+                }
+            }
+
+            if (hasWarnings)
+            {
+                _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos, GUILayout.Height(200));
+                for (int i = 0; i < _meshFilters.Count; i++)
+                {
+                    var m = _meshFilters[i].sharedMesh;
+
+                    if (!m.HasVertexAttribute(VertexAttribute.TexCoord1))
+                    {
+                        if (WarningBox($"Mesh {m.name} has no UV2", "Select"))
+                        {
+                            EditorGUIUtility.PingObject(m);
+                        }
+                    }
+
+                    if (!m.isReadable)
+                    {
+                        if (WarningBox($"Mesh {m.name} has no Read/Write enabled", "Select"))
+                        {
+                            EditorGUIUtility.PingObject(m);
+                        }
+                    }
+
+                }
+                EditorGUILayout.EndScrollView();
+            }
+
+
+
         }
     }
 

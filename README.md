@@ -10,6 +10,8 @@ It generates unique uv2 per mesh, instead of using lightmap UV offsets, which wh
 - Patch Bakery `Tools > XatlasLightmap > PatchBakery` (only once)
 - Add a `XatlasLightmapPacker` script on a GameObject
 - Select a BakeryLightmapGroup asset with Packing Mode set to Original UV
+- Generate Lightmap UVs on the model importer or create custom UV2
+- Enable mesh Read/Write on the model importer
 - Pack
 
 
@@ -24,6 +26,8 @@ It generates unique uv2 per mesh, instead of using lightmap UV offsets, which wh
 - Lightmaps might fail to bake properly first time
 
 - Only works with Bakery
+
+- Sometimes on build it can fail to get UV2 because Read/Write is disabled, even tho its not needed for an editor script. This also doesn't affect the build size. The original mesh is never referenced, only the combined static mesh gets included.
 
 
 ## Examples
