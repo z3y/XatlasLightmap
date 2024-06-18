@@ -21,15 +21,17 @@ namespace z3y
     // there is no reason to use lightmap tiling and offset when we can just set different uv2 for each mesh renderer and pack them very efficiently
     // this gets merged by static batching creating no additional cost
     [ExecuteInEditMode]
-    public class XatlasLightmapPacker : MonoBehaviour //, VRC.SDKBase.IPreprocessCallbackBehaviour
+    public class XatlasLightmapPacker : MonoBehaviour
     {
-        public GameObject[] rootObjects; // the renderers here would be on the same lightmap group with no uv adjustments (original uv)
+        //public GameObject[] rootObjects; // the renderers here would be on the same lightmap group with no uv adjustments (original uv)
+        public BakeryLightmapGroup lightmapGroup;
         public bool autoUpdateUVs = false;
         const bool bruteForce = false;
 
         public bool ignoreScaleInLightmap = false;
 
-        public int lightmapSize = 1024;
+        //public int lightmapSize = 1024;
+        public int LightmapSize() => lightmapGroup.resolution;
         public int padding = 2;
 
         [Serializable]
@@ -40,6 +42,26 @@ namespace z3y
                 lightmapUV = uv;
             }
             public Vector2[] lightmapUV;
+        }
+
+        public GameObject[] GetRootGameObjectsFromGroup()
+        {
+            var objects = new List<GameObject>();
+            var selectors = FindObjectsOfType<BakeryLightmapGroupSelector>();
+
+
+            foreach (var selector in selectors )
+            {
+                if (selector.lmgroupAsset != lightmapGroup)
+                {
+                    continue;
+                }
+
+                objects.Add(selector.gameObject);
+            }
+
+
+            return objects.ToArray();
         }
 
         // This should probably be done somewhere else, but im not sure exactly when does unity clear the additionalVertexStreams
@@ -68,6 +90,7 @@ namespace z3y
         private void Execute(bool clearStream, bool regenerateData)
         {
             var meshes = new List<Mesh>();
+            var rootObjects = GetRootGameObjectsFromGroup();
             GetActiveTransformsWithRenderers(rootObjects, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
 
             LightmapMeshData[] meshCache = null;
@@ -169,7 +192,7 @@ namespace z3y
                 }
 
 
-                xatlas.PackLightmap(meshes.ToArray(), padding, lightmapSize, bruteForce);
+                xatlas.PackLightmap(meshes.ToArray(), padding, LightmapSize(), bruteForce);
 
                 meshCache = new LightmapMeshData[meshes.Count];
                 for (int k = 0; k < meshCache.Length; k++)
@@ -335,9 +358,9 @@ namespace z3y
         //public RenderTexture rt;
         //public Material mt;
         //pr Material lmblur;
-        public Texture2D lightmap;
+        [HideInInspector] public Texture2D lightmap;
         [Range(1,5)]
-        public int radius = 2;
+        [HideInInspector] public int radius = 2;
 
         public int PreprocessOrder => throw new NotImplementedException();
 
@@ -653,12 +676,54 @@ namespace z3y
                     EditorUtility.SetDirty(packer.gameObject);
                     packer.ClearVertexStreams();
                 }
-                if (GUILayout.Button("Gaussian Prefilter (wip)"))
+                /*if (GUILayout.Button("Gaussian Prefilter (wip)"))
                 {
                     var meshes = new List<Mesh>();
-                    packer.GetActiveTransformsWithRenderers(packer.rootObjects, out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
+                    packer.GetActiveTransformsWithRenderers(packer.GetRootGameObjectsFromGroup(), out List<MeshRenderer> renderers, out List<MeshFilter> filters, out List<GameObject> objects);
                     //var lightmap = renderers[0].lightmapIndex;
                     packer.GaussianPrefilter(renderers.ToArray());
+                }*/
+
+            }
+
+            EditorGUILayout.Space();
+            Warnings();
+        }
+
+        // Mimics the normal map import warning - written by Orels1
+        private static bool WarningBox(string message)
+        {
+            GUILayout.BeginVertical(new GUIStyle(EditorStyles.helpBox));
+            EditorGUILayout.LabelField(message, new GUIStyle(EditorStyles.label) { fontSize = 11, wordWrap = true });
+            EditorGUILayout.BeginHorizontal(new GUIStyle() { alignment = TextAnchor.MiddleRight }, GUILayout.Height(24));
+            EditorGUILayout.Space();
+            var buttonPress = GUILayout.Button("Fix Now", new GUIStyle("button")
+            {
+                stretchWidth = false,
+                margin = new RectOffset(0, 0, 0, 0),
+                padding = new RectOffset(8, 8, 0, 0)
+            }, GUILayout.Height(22));
+            EditorGUILayout.EndHorizontal();
+            GUILayout.EndVertical();
+            return buttonPress;
+        }
+
+        void Warnings()
+        {
+            var packer = target as XatlasLightmapPacker;
+            if (packer.lightmapGroup == null)
+            {
+                return;
+            }
+
+            var group = packer.lightmapGroup;
+
+            if (group.mode != BakeryLightmapGroup.ftLMGroupMode.OriginalUV)
+            {
+                if (WarningBox("Lightmap Group mode not set to Original UV"))
+                {
+                    group.mode = BakeryLightmapGroup.ftLMGroupMode.OriginalUV;
+                    EditorUtility.SetDirty(group);
                 }
             }
         }

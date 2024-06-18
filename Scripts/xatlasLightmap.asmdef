@@ -1,8 +1,11 @@
 {
     "name": "xatlasLightmap",
+    "rootNamespace": "",
     "references": [
         "GUID:d8b63aba1907145bea998dd612889d6b",
-        "GUID:2665a8d13d1b3f18800f46e256720795"
+        "GUID:2665a8d13d1b3f18800f46e256720795",
+        "GUID:290dd5870d0ead646bcb6ea5c6a60af5",
+        "GUID:a1653399f63795746b1857281d1e400d"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
