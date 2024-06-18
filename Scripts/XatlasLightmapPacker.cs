@@ -26,7 +26,7 @@ namespace z3y
         //public GameObject[] rootObjects; // the renderers here would be on the same lightmap group with no uv adjustments (original uv)
         public BakeryLightmapGroup lightmapGroup;
         public bool autoUpdateUVs = false;
-        const bool bruteForce = false;
+        public bool bruteForce = false;
 
         public bool ignoreScaleInLightmap = false;
 
