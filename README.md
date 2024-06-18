@@ -1,20 +1,32 @@
 # XatlasLightmap
 
-This tool sets additional vertex streams on mesh renderers which allows for more efficient packing. It requires a small modification to bakery so that uv2 data from additional vertex streams can also be used when baking. When used with static batching there is no additional cost to the added unique geometry since the meshes get merged anyways.
+A tool for the most efficient lightmap packing in Unity.
 
-- Patch Bakery `Tools/XatlasLightmap/PatchBakery`
+## How it works
+It generates unique uv2 per mesh, instead of using lightmap UV offsets, which when combined with static batching doesn't create any extra cost. Additional vertex streams are used to set uv2 in editor, which requires modifications to bakery scripts. Lightmap Scale is also calculated differently which allows it to have perfectly uniform texel density when lightmap scale is set to 1.
+
+## How to use
+- Add package with git `https://github.com/z3y/XatlasLightmap.git`
+- Patch Bakery `Tools > XatlasLightmap > PatchBakery` (only once)
 - Add a `XatlasLightmapPacker` script on a GameObject
-- Add GameObjects to the list and press Pack (all active renderers are taken from child GameObjects)
-- Make sure the same GameObjects are on one bakery lightmap group with no UV adjustments (PackingMode: OriginalUV)
-- Bake
+- Select a BakeryLightmapGroup asset with Packing Mode set to Original UV
+- Pack
 
-Model reimports are currently not detected, the mesh data will need to be updated each time a mesh changes or it will look completely broken in the editor.
 
-Since the packing is so efficient and the padding gets applied correctly most shaders will have slight bleeding at 2px, it is recommended to use a centroid interpolator for the lightmap uv.
+## Limitations
 
-It also handles scaling of uv2 differently which allows it to have perfectly uniform texel density.
+- Doesn't work with GPU instancing, since every mesh ends up being unique. Only use with static batching.
 
-Breaks GPU instancing.
+- Model reimports will break the mesh until packed again.
+
+- Since the packing is so efficient and the padding gets applied correctly most shaders will have slight bleeding at 2px, it is recommended to use a centroid interpolator for the lightmap UV.
+
+- Lightmaps might fail to bake properly first time
+
+- Only works with Bakery
+
+
+## Examples
 
 Sponza:
 
