@@ -29,8 +29,6 @@ It generates unique uv2 per mesh, instead of using lightmap UV offsets, which wh
 
 - Sometimes on build it can fail to get UV2 because Read/Write is disabled, even tho its not needed for an editor script. This also doesn't affect the build size. The original mesh is never referenced, only the combined static mesh gets included.
 
-- Missing UV2s when generate lightmap uvs can be fixed by removing the bakery asset postprocessor and preprocessor in ftModelPostProcessor, it is not needed when using this packer.
-
 
 ## Examples
 
