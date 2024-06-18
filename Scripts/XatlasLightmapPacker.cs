@@ -752,6 +752,10 @@ namespace z3y
 
             // this is cursed but how else do i know in advance if i should draw the scroll view lol
             bool hasWarnings = false;
+            if (_meshFilters == null)
+            {
+                return;
+            }
             for (int i = 0; i < _meshFilters.Count; i++)
             {
                 var m = _meshFilters[i].sharedMesh;
