@@ -39,7 +39,10 @@ namespace z3y
 
             for (int i = 0; i < instances.Count; i++)
             {
-                instances[i].Execute(false, true);
+                if (instances[i].autoUpdateUVs)
+                {
+                    instances[i].Execute(false, true);
+                }
             }
 
         }
