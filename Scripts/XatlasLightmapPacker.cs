@@ -730,7 +730,7 @@ namespace z3y
                 return;
             }
 
-            /*var storage = FindObjectOfType<ftLightmapsStorage>();
+            var storage = FindObjectOfType<ftLightmapsStorage>();
             if (storage != null)
             {
                 if (!(storage.renderSettingsForceDisableUnwrapUVs || !storage.renderSettingsUnwrapUVs))
@@ -738,7 +738,7 @@ namespace z3y
                     EditorGUILayout.HelpBox("Disable Adjust UV Padding in bakery lightmap settings", MessageType.Warning);
                 }
             }
-*/
+
 
             if (_firstFrame)
             {
