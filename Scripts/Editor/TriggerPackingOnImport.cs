@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 /*using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -37,3 +38,4 @@ public class TriggerPackingOnImport : AssetPostprocessor
     }
 }
 */
+#endif
