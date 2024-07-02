@@ -1,7 +1,7 @@
 {
   "name": "com.z3y.xatlaslightmap",
   "description": "Xatlas lightmap uv packer for bakery lightmapper",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "unity": "2019.4",
   "displayName": "Xatlas Lightmap",
   "hideInEditor": false

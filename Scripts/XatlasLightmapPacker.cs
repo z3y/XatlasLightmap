@@ -87,7 +87,7 @@ namespace z3y
             Execute(true, false);
         }
 
-        public void Execute(bool clearStream, bool regenerateData)
+        public void Execute(bool clearStream, bool regenerateData, bool directlyToUv2 = false)
         {
             var meshes = new List<Mesh>();
             var rootObjects = GetRootGameObjectsFromGroup();
@@ -217,9 +217,16 @@ namespace z3y
                 }
 
 
-                var avs = m_Renderer.additionalVertexStreams;
                 var sm = mf.sharedMesh;
-
+                var avs = m_Renderer.additionalVertexStreams;
+#if SLZ_BATCHING
+                if (directlyToUv2)
+                {
+                    var newMesh = Instantiate(sm);
+                    avs = newMesh;
+                    mf.sharedMesh = newMesh;
+                }
+#endif
 
                 // vertices have to be set to match the uv2 length
                 // it can cause problems when editing and reimporting the geometry but thankfully its non destructive and setting them again or clearing streams fixes it
@@ -648,7 +655,7 @@ namespace z3y
 
             for (int i = 0; i < instances.Count; i++)
             {
-                instances[i].PackCharts();
+                instances[i].Execute(false, false, true);
             }
         }
     }
