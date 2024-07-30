@@ -172,6 +172,8 @@ namespace z3y
 #endif
                     var stream = new Mesh
                     {
+                        name = sm.name,
+                        indexFormat = sm.indexFormat, // thanks haxy
                         vertices = sm.vertices,
                         normals = sm.normals,
                         uv = sm.uv,
