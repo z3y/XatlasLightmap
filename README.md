@@ -17,6 +17,8 @@ It generates unique uv2 per mesh, instead of using lightmap UV offsets, which wh
 
 ## Limitations
 
+- Nested lightmap groups arent supported yet
+
 - Doesn't work with GPU instancing, since every mesh ends up being unique. Only use with static batching.
 
 - Model reimports will break the mesh until packed again.
