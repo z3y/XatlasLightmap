@@ -139,14 +139,14 @@ namespace z3y
                         {
                             var indicies = new NativeArray<int>(sm.GetIndices(j), Allocator.TempJob);
 
-                            var areaMultiplier = new CalculateChartsAreaMultiplierJob(verts, uvs, modelMatrix, indicies, scale, result);
+                            var areaMultiplier = new CalculateChartsAreaMultiplierJob(verts, uvs, modelMatrix, indicies, result);
                             areaMultiplier.Run(indicies.Length/3);
 
                             indicies.Dispose();
                         }
                         float area = result[0];
                         float uvArea = result[1];
-                        float finalScale = math.sqrt(area) / math.sqrt(uvArea);
+                        float finalScale = (math.sqrt(area) / math.sqrt(uvArea)) * scale;
 
                         var scaleJob = new ScaleUVsJob(uvs, finalScale);
                         scaleJob.Run(uvs.Length);
@@ -486,13 +486,12 @@ namespace z3y
         [BurstCompile(CompileSynchronously = true, DisableSafetyChecks = true)]
         private struct CalculateChartsAreaMultiplierJob : IJobParallelFor
         {
-            public CalculateChartsAreaMultiplierJob(NativeArray<float3> verts, NativeArray<float2> uvs, Matrix4x4 modelMatrix, NativeArray<int> indices, float scaleMultiplier, NativeArray<float> result)
+            public CalculateChartsAreaMultiplierJob(NativeArray<float3> verts, NativeArray<float2> uvs, Matrix4x4 modelMatrix, NativeArray<int> indices, NativeArray<float> result)
             {
                 this.verts = verts;
                 this.uvs = uvs;
                 this.modelMatrix = modelMatrix;
                 this.indices = indices;
-                this.scaleMultiplier = scaleMultiplier;
                 this.result = result;
             }
 
@@ -500,7 +499,6 @@ namespace z3y
             public NativeArray<float3> verts;
             public NativeArray<float2> uvs;
             public float4x4 modelMatrix;
-            public float scaleMultiplier;
 
             public NativeArray<float> result; // length 2
 
