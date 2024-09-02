@@ -25,6 +25,8 @@ It generates unique uv2 per mesh, instead of using lightmap UV offsets, which wh
 
 - Since the packing is so efficient and the padding gets applied correctly most shaders will have slight bleeding at 2px, it is recommended to use a centroid interpolator for the lightmap UV.
 
+- Using bicubic sampling requires more padding
+
 - Lightmaps might fail to bake properly first time
 
 - Only works with Bakery
