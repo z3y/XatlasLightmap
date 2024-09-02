@@ -18,21 +18,13 @@ It generates unique uv2 per mesh, instead of using lightmap UV offsets, which wh
 ## Limitations
 
 - Nested lightmap groups arent supported yet
-
 - Doesn't work with GPU instancing, since every mesh ends up being unique. Only use with static batching.
-
 - Model reimports will break the mesh until packed again.
-
 - Since the packing is so efficient and the padding gets applied correctly most shaders will have slight bleeding at 2px, it is recommended to use a centroid interpolator for the lightmap UV.
-
 - Using bicubic sampling requires more padding
-
 - Lightmaps might fail to bake properly first time
-
 - Only works with Bakery
-
 - Sometimes on build it can fail to get UV2 because Read/Write is disabled, even tho its not needed for an editor script. This also doesn't affect the build size. The original mesh is never referenced, only the combined static mesh gets included.
-
 
 ## Examples
 
