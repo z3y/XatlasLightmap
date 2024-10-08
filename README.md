@@ -14,7 +14,7 @@ It generates unique uv2 per mesh, instead of using lightmap UV offsets, which wh
 - Enable mesh Read/Write on the model importer
 - Pack
 
-[Share your lightmaps](https://github.com/z3y/XatlasLightmap/issues/new)
+[Share your lightmaps](https://github.com/z3y/XatlasLightmap/issues/6)
 
 ## Limitations
 
