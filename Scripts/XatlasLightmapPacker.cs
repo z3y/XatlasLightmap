@@ -60,6 +60,11 @@ namespace z3y
                 objects.Add(selector.gameObject);
             }
 
+            if (selectors.Length == 0)
+            {
+                objects.Add(gameObject);
+            }
+
 
             return objects.ToArray();
         }
@@ -76,6 +81,7 @@ namespace z3y
 
             if (!autoUpdateUVs)
             {
+                ClearVertexStreams();
                 return;
             }
             Execute(false, false);
@@ -195,7 +201,7 @@ namespace z3y
                 }
 
 
-                xatlas.PackLightmap(meshes.ToArray(), padding, LightmapSize(), bruteForce);
+                Xatlas.PackLightmap(meshes.ToArray(), padding, LightmapSize(), bruteForce);
 
                 meshCache = new LightmapMeshData[meshes.Count];
                 for (int k = 0; k < meshCache.Length; k++)
