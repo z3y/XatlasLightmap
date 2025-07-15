@@ -113,6 +113,7 @@ namespace z3y
                     if (clearStream)
                     {
                         m_Renderer.additionalVertexStreams = null;
+                        EditorUtility.SetDirty(m_Renderer);
                         continue;
                     }
 
