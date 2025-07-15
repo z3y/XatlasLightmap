@@ -1,0 +1,9 @@
+/bin
+/build
+/models
+/source/examples
+/source/test
+/source/thirdparty
+/source/viewer
+/source/xatlas/xatlas_c.h
+/source/xatlas.natvis
