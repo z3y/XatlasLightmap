@@ -52,7 +52,7 @@ namespace z3y
 
             foreach (var selector in selectors )
             {
-                if (selector.lmgroupAsset != lightmapGroup)
+                if (selector.lmgroupAsset != lightmapGroup || !selector.enabled)
                 {
                     continue;
                 }
@@ -89,8 +89,10 @@ namespace z3y
 
         public void ClearVertexStreams()
         {
-            autoUpdateUVs = false;
+            bool lastAutoUpdateUVs = autoUpdateUVs;
+            autoUpdateUVs = true;
             Execute(true, false);
+            autoUpdateUVs = lastAutoUpdateUVs;
         }
 
         public void Execute(bool clearStream, bool regenerateData, bool directlyToUv2 = false)
@@ -270,8 +272,10 @@ namespace z3y
 
         public void RePackCharts()
         {
+            bool lastAutoUpdateUVs = autoUpdateUVs;
             autoUpdateUVs = true;
             Execute(false, true);
+            autoUpdateUVs = lastAutoUpdateUVs;
         }
         public void PackCharts()
         {
