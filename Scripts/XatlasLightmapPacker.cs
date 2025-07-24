@@ -90,7 +90,7 @@ namespace z3y
         public void ClearVertexStreams()
         {
             bool lastAutoUpdateUVs = autoUpdateUVs;
-            autoUpdateUVs = true;
+            autoUpdateUVs = false;
             Execute(true, false);
             autoUpdateUVs = lastAutoUpdateUVs;
         }
