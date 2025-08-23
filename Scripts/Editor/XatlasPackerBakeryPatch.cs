@@ -16,8 +16,8 @@ namespace z3y
         const string Patch0Start = "if (ftRenderLightmap.checkOverlaps)";
         const string Patch1Start = "ftUVGBufferGen.StartUVGBuffer(res, hasEmissive, bakeWithNormalMaps";
 
-        const string Patch0Text = "for (int i = 0; i < objsToWrite.Count(); i++)\r\n            {\r\n                var r = objsToWrite[i].GetComponent<MeshRenderer>();\r\n\r\n                if (r && r.additionalVertexStreams)\r\n                {\r\n                    objsToWriteVerticesUV2[i] = r.additionalVertexStreams.uv2;\r\n                    // this can also change\r\n                    //objsToWriteVerticesUV[i] = r.additionalVertexStreams.uv;\r\n                }\r\n            }";
-        const string Patch1Text = "for (int i = 0; i < objsToWrite.Count(); i++)\r\n                {\r\n                    var r = objsToWrite[i].GetComponent<MeshRenderer>();\r\n\r\n                    if (r && r.additionalVertexStreams && r.additionalVertexStreams.uv2 != null)\r\n                    {\r\n                        objsToWriteUVOverride[i] = r.additionalVertexStreams.uv2;\r\n                    }\r\n                }";
+        const string Patch0Text = "for (int i = 0; i < objsToWrite.Count(); i++)\r\n            {\r\n                var r = objsToWrite[i].GetComponent<MeshRenderer>();\r\n\r\n                if (r && r.enlightenVertexStream)\r\n                {\r\n                    objsToWriteVerticesUV2[i] = r.enlightenVertexStream.uv2;\r\n                    // this can also change\r\n                    //objsToWriteVerticesUV[i] = r.enlightenVertexStream.uv;\r\n                }\r\n            }";
+        const string Patch1Text = "for (int i = 0; i < objsToWrite.Count(); i++)\r\n                {\r\n                    var r = objsToWrite[i].GetComponent<MeshRenderer>();\r\n\r\n                    if (r && r.enlightenVertexStream && r.enlightenVertexStream.uv2 != null)\r\n                    {\r\n                        objsToWriteUVOverride[i] = r.enlightenVertexStream.uv2;\r\n                    }\r\n                }";
 
         [MenuItem("Tools/XatlasLightmap/PatchBakery")]
         public static void PatchBakery()

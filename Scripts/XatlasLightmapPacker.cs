@@ -119,6 +119,7 @@ namespace z3y
                     if (clearStream)
                     {
                         m_Renderer.additionalVertexStreams = null;
+                        m_Renderer.enlightenVertexStream = null;
                         EditorUtility.SetDirty(m_Renderer);
                         continue;
                     }
@@ -227,7 +228,7 @@ namespace z3y
 
 
                 var sm = mf.sharedMesh;
-                var avs = m_Renderer.additionalVertexStreams;
+                var avs = m_Renderer.enlightenVertexStream;
 #if SLZ_BATCHING
                 if (directlyToUv2)
                 {
@@ -257,7 +258,7 @@ namespace z3y
                     avs.uv2 = meshCache[i].lightmapUV;
                 }
 
-                m_Renderer.additionalVertexStreams = avs;
+                m_Renderer.enlightenVertexStream = avs;
                 avs.UploadMeshData(false);
             }
 
