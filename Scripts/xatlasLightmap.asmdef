@@ -5,7 +5,8 @@
         "GUID:d8b63aba1907145bea998dd612889d6b",
         "GUID:2665a8d13d1b3f18800f46e256720795",
         "GUID:290dd5870d0ead646bcb6ea5c6a60af5",
-        "GUID:a1653399f63795746b1857281d1e400d"
+        "GUID:a1653399f63795746b1857281d1e400d",
+        "GUID:9a8bdddd646a38942a48327b4cf31ca4"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -19,6 +20,11 @@
             "name": "com.stresslevelzero.static-batching",
             "expression": "1.0",
             "define": "SLZ_BATCHING"
+        },
+        {
+            "name": "io.github.z3y.glim",
+            "expression": "0.4",
+            "define": "GLIM_INCLUDED"
         }
     ],
     "noEngineReferences": false

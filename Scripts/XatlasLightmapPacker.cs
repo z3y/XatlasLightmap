@@ -23,15 +23,40 @@ namespace z3y
     [ExecuteInEditMode]
     public class XatlasLightmapPacker : MonoBehaviour
     {
+#if BAKERY_INCLUDED
         //public GameObject[] rootObjects; // the renderers here would be on the same lightmap group with no uv adjustments (original uv)
         public BakeryLightmapGroup lightmapGroup;
+#endif
+
+
+#if GLIM_INCLUDED
+        public Glim.GlimLightmapGroup glimLightmapGroup;
+#endif
+
         public bool autoUpdateUVs = false;
         public bool bruteForce = false;
 
         public bool ignoreScaleInLightmap = false;
 
-        //public int lightmapSize = 1024;
-        public int LightmapSize() => lightmapGroup == null ? 1024 : lightmapGroup.resolution;
+        public int LightmapSize()
+        {
+#if GLIM_INCLUDED
+            if (glimLightmapGroup)
+            {
+                return (int)glimLightmapGroup.resolution;
+            }
+#endif
+
+#if BAKERY_INCLUDED
+            if (lightmapGroup)
+            {
+                return lightmapGroup.resolution;
+            }
+#endif
+
+            return 1024;
+        }
+
         public int padding = 2;
 
         [Serializable]
@@ -44,13 +69,15 @@ namespace z3y
             public Vector2[] lightmapUV;
         }
 
+        void Start() { }
+
         public GameObject[] GetRootGameObjectsFromGroup()
         {
             var objects = new List<GameObject>();
+
+#if BAKERY_INCLUDED
             var selectors = FindObjectsOfType<BakeryLightmapGroupSelector>();
-
-
-            foreach (var selector in selectors )
+            foreach (var selector in selectors)
             {
                 if (selector.lmgroupAsset != lightmapGroup)
                 {
@@ -64,15 +91,33 @@ namespace z3y
             {
                 objects.Add(gameObject);
             }
+#endif
 
+#if GLIM_INCLUDED
+            var glimSelectors = FindObjectsOfType<Glim.LightmapGroupSelector>();
+            foreach (var selector in glimSelectors)
+            {
+                if (selector.group != glimLightmapGroup)
+                {
+                    continue;
+                }
 
-            return objects.ToArray();
+                objects.Add(selector.gameObject);
+            }
+
+            if (glimSelectors.Length == 0)
+            {
+                objects.Add(gameObject);
+            }
+#endif
+
+            return objects.Distinct().ToArray();
         }
 
         // This should probably be done somewhere else, but im not sure exactly when does unity clear the additionalVertexStreams
         // it seems to happen on scene load, entering play mode and reload
 
-        private void OnValidate()
+        public void OnValidate()
         {
             if (Application.isPlaying)
             {
@@ -148,7 +193,7 @@ namespace z3y
                             var indicies = new NativeArray<int>(sm.GetIndices(j), Allocator.TempJob);
 
                             var areaMultiplier = new CalculateChartsAreaMultiplierJob(verts, uvs, modelMatrix, indicies, result);
-                            areaMultiplier.Run(indicies.Length/3);
+                            areaMultiplier.Run(indicies.Length / 3);
 
                             indicies.Dispose();
                         }
@@ -377,14 +422,14 @@ namespace z3y
         //public Material mt;
         //pr Material lmblur;
         [HideInInspector] public Texture2D lightmap;
-        [Range(1,5)]
+        [Range(1, 5)]
         [HideInInspector] public int radius = 2;
 
         public int PreprocessOrder => throw new NotImplementedException();
 
         public void GaussianPrefilter(Renderer[] renderers)
         {
-            if ( lightmap is null)
+            if (lightmap is null)
             {
                 return;
             }
@@ -740,11 +785,9 @@ namespace z3y
         void Warnings()
         {
             var packer = target as XatlasLightmapPacker;
-            if (packer.lightmapGroup == null)
-            {
-                return;
-            }
 
+
+#if BAKERY_INCLUDED
             var storage = FindObjectOfType<ftLightmapsStorage>();
             if (storage != null)
             {
@@ -753,6 +796,7 @@ namespace z3y
                     EditorGUILayout.HelpBox("Disable Adjust UV Padding in bakery lightmap settings", MessageType.Warning);
                 }
             }
+#endif
 
 
             if (_firstFrame)
@@ -762,9 +806,9 @@ namespace z3y
                 _meshFilters = filters;
             }
 
+#if BAKERY_INCLUDED
             var group = packer.lightmapGroup;
-
-            if (group.mode != BakeryLightmapGroup.ftLMGroupMode.OriginalUV)
+            if (group != null && group.mode != BakeryLightmapGroup.ftLMGroupMode.OriginalUV)
             {
                 if (WarningBox("Lightmap Group mode not set to Original UV"))
                 {
@@ -772,6 +816,19 @@ namespace z3y
                     EditorUtility.SetDirty(group);
                 }
             }
+#endif
+
+#if GLIM_INCLUDED
+            var glimGroup = packer.glimLightmapGroup;
+            if (glimGroup != null && glimGroup.packingType != Glim.UVPackingType.None)
+            {
+                if (WarningBox("Lightmap Group mode not set to None"))
+                {
+                    glimGroup.packingType = Glim.UVPackingType.None;
+                    EditorUtility.SetDirty(glimGroup);
+                }
+            }
+#endif
 
 
             // this is cursed but how else do i know in advance if i should draw the scroll view lol
@@ -826,27 +883,5 @@ namespace z3y
 
         }
     }
-
-    /*public static class JsonHelper
-    {
-        public static T[] FromJson<T>(string json)
-        {
-            Wrapper<T> wrapper = UnityEngine.JsonUtility.FromJson<Wrapper<T>>(json);
-            return wrapper.Items;
-        }
-
-        public static string ToJson<T>(T[] array)
-        {
-            Wrapper<T> wrapper = new Wrapper<T>();
-            wrapper.Items = array;
-            return UnityEngine.JsonUtility.ToJson(wrapper);
-        }
-
-        [Serializable]
-        private class Wrapper<T>
-        {
-            public T[] Items;
-        }
-    }*/
 }
 #endif

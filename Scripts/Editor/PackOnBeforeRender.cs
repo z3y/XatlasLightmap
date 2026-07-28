@@ -1,4 +1,4 @@
-#if UNITY_EDITOR
+#if UNITY_EDITOR && BAKERY_INCLUDED
 using System;
 using System.Collections;
 using System.Collections.Generic;
