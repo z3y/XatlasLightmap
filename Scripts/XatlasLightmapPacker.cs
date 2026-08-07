@@ -79,7 +79,7 @@ namespace z3y
             var selectors = FindObjectsOfType<BakeryLightmapGroupSelector>();
             foreach (var selector in selectors)
             {
-                if (selector.lmgroupAsset != lightmapGroup)
+                if (selector.lmgroupAsset != lightmapGroup || !selector.enabled)
                 {
                     continue;
                 }
@@ -134,8 +134,10 @@ namespace z3y
 
         public void ClearVertexStreams()
         {
+            bool lastAutoUpdateUVs = autoUpdateUVs;
             autoUpdateUVs = false;
             Execute(true, false);
+            autoUpdateUVs = lastAutoUpdateUVs;
         }
 
         public void Execute(bool clearStream, bool regenerateData, bool directlyToUv2 = false)
@@ -316,8 +318,10 @@ namespace z3y
 
         public void RePackCharts()
         {
+            bool lastAutoUpdateUVs = autoUpdateUVs;
             autoUpdateUVs = true;
             Execute(false, true);
+            autoUpdateUVs = lastAutoUpdateUVs;
         }
         public void PackCharts()
         {
